@@ -128,6 +128,6 @@ Integration tests là lựa chọn thay cho chạy batch B/C riêng, không ch�
 để tránh trả phí hai lần: `python -m pytest -m integration --run-live`.
 
 Trưởng nhóm nộp một link repo theo kênh coach công bố. Deadline mặc định là
-**23:59 ngày diễn ra lab, Asia/Ho_Chi_Minh (UTC+07:00)**; áp dụng điều chỉnh của
+**11:59 AM (13/10/2026), Asia/Ho_Chi_Minh (UTC+07:00)**; áp dụng điều chỉnh của
 key coach trong 48 giờ sau lab theo quy ước chung. Blueprint là đề xuất CI/CD,
 không mặc nhiên là workflow đã chạy.
