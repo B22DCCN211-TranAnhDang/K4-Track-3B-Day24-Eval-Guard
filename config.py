@@ -7,6 +7,11 @@ load_dotenv()
 
 # --- API Keys ---
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://openrouter.ai/api/v1")
+if OPENAI_BASE_URL:
+    os.environ["OPENAI_BASE_URL"] = OPENAI_BASE_URL
+if OPENAI_API_KEY:
+    os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
 HF_TOKEN = os.getenv("HF_TOKEN", "")  # Optional: for HuggingFace models
 
 # --- Qdrant (same as Day 18) ---
@@ -44,10 +49,23 @@ OUTPUT_SET_PATH = os.path.join(FIXTURES_DIR, "output_set_4.json")
 GUARDRAILS_CONFIG_DIR = os.path.join(ROOT_DIR, "guardrails")
 PAIR_QUESTION_IDS = (1, 5, 12, 21, 41)
 
-# --- LLM Judge ---
-GENERATION_MODEL = "gpt-4o-mini"
-JUDGE_MODEL = "gpt-4o-mini"
+# --- LLM Judge & Eval ---
+GENERATION_MODEL = os.getenv("GENERATION_MODEL", "openai/gpt-4o-mini")
+JUDGE_MODEL = os.getenv("JUDGE_MODEL", "openai/gpt-4o-mini")
+RAGAS_MODEL = os.getenv("RAGAS_MODEL", "openai/gpt-4o-mini")
+LLM_API_KEY = OPENAI_API_KEY
+LLM_MODEL = GENERATION_MODEL
+LLM_BASE_URL = OPENAI_BASE_URL
+
+
+def create_llm_client():
+    if not OPENAI_API_KEY:
+        return None
+    from openai import OpenAI
+    return OpenAI(api_key=OPENAI_API_KEY, base_url=OPENAI_BASE_URL)
+
 
 # --- Guardrail latency budget ---
 LATENCY_BUDGET_P95_MS = 500  # Full guard target; Task 12 currently measures input guards only.
 PRESIDIO_LANGUAGE = "en"    # Presidio base language; custom VN recognizers added via PatternRecognizer
+
