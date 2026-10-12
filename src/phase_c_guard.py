@@ -3,14 +3,12 @@ from __future__ import annotations
 """Phase C: Production Guardrails — Presidio PII + NeMo Guardrails + P95 Latency."""
 
 import asyncio
-import json
 import os
-import statistics
 import sys
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config import ADVERSARIAL_SET_PATH, GUARDRAILS_CONFIG_DIR, LATENCY_BUDGET_P95_MS, PRESIDIO_LANGUAGE
+from config import GUARDRAILS_CONFIG_DIR, PRESIDIO_LANGUAGE
 
 
 # ─── Task 9a: Presidio PII Detection ─────────────────────────────────────────
@@ -59,6 +57,8 @@ def pii_scan(text: str, analyzer=None, anonymizer=None) -> dict:
           "anonymized": str,   # text với PII được thay bằng <TYPE>
         }
     """
+    if not isinstance(text, str):
+        raise TypeError("text must be a string")
     if analyzer is None or anonymizer is None:
         analyzer, anonymizer = setup_presidio()
 
@@ -105,6 +105,8 @@ async def check_input_rail(text: str, rails=None) -> dict:
           "response":       str,          # NeMo's raw response
         }
     """
+    if not isinstance(text, str):
+        raise TypeError("text must be a string")
     if rails is None:
         rails = setup_nemo_rails()
 
@@ -136,6 +138,8 @@ async def check_output_rail(question: str, answer: str, rails=None) -> dict:
           "final_answer":   str,          # answer đã qua guard (có thể bị redact)
         }
     """
+    if not isinstance(question, str) or not isinstance(answer, str):
+        raise TypeError("question and answer must be strings")
     if rails is None:
         rails = setup_nemo_rails()
 
@@ -160,10 +164,11 @@ async def check_output_rail(question: str, answer: str, rails=None) -> dict:
 
 def run_adversarial_suite(adversarial_set: list[dict], rails=None,
                            analyzer=None, anonymizer=None) -> list[dict]:
-    """Task 10: Chạy 20 adversarial inputs qua full guard stack, so sánh với expected.
+    """Task 10: Chạy batch inputs bất kỳ (attacks và clean controls).
 
+    expected chỉ dùng đối chiếu kết quả, không ảnh hưởng quyết định guard.
     Guard stack order:
-        1. pii_scan()         → block nếu has_pii (cho category pii_injection)
+        1. pii_scan()         → block nếu has_pii (mọi category)
         2. check_input_rail() → block nếu jailbreak / off-topic / prompt injection
 
     Returns:
@@ -175,6 +180,17 @@ def run_adversarial_suite(adversarial_set: list[dict], rails=None,
           "passed": bool,
         }
     """
+    if not isinstance(adversarial_set, list):
+        raise TypeError("adversarial_set must be a list of input records")
+    for item in adversarial_set:
+        if (not isinstance(item, dict)
+                or type(item.get("id")) is not int
+                or not isinstance(item.get("category"), str)
+                or not isinstance(item.get("input"), str)
+                or item.get("expected") not in ("blocked", "allowed")):
+            raise ValueError("Each input needs id, category, input and expected blocked/allowed")
+    if not adversarial_set:
+        return []
     if analyzer is None or anonymizer is None:
         analyzer, anonymizer = setup_presidio()
     if rails is None:
@@ -228,8 +244,11 @@ def measure_p95_latency(test_inputs: list[str], n_runs: int = 20,
     Short-circuit request timing, RAG and output timing are outside this scope.
     """
     from src.experiment_support import summarize_latency
-    if not test_inputs or n_runs < 1:
-        raise ValueError("Need inputs and n_runs >= 1")
+    if (not isinstance(test_inputs, list) or not test_inputs
+            or any(not isinstance(text, str) for text in test_inputs)):
+        raise ValueError("test_inputs must be a non-empty list of strings")
+    if type(n_runs) is not int or n_runs < 20:
+        raise ValueError("n_runs must be an integer >= 20")
     if analyzer is None or anonymizer is None:
         analyzer, anonymizer = setup_presidio()
     if rails is None:
